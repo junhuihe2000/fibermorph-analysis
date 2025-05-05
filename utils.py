@@ -178,10 +178,11 @@ def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, 
     # Resize the image to a fixed width while maintaining aspect ratio
     height = int(image.shape[0] * (width / image.shape[1]))
     image = cv2.resize(image, (width, height))
-    
+
     im_center = np.array(image.shape) // 2
 
     _, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_DILATE, np.ones((3, 3)), iterations=3)
     bin_img = skimage.segmentation.clear_border(thresh)
     # label the image
     label_im, _ = skimage.measure.label(bin_img, connectivity=2, return_num=True)
