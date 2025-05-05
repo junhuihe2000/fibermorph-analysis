@@ -5,5 +5,5 @@ scikit-learn
 scipy
 pillow
 tqdm
-opencv-python
+opencv-python-headless
 streamlit
