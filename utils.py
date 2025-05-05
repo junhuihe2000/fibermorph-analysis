@@ -158,3 +158,65 @@ def weighted_median(values, weights):
     # Find the first value where cumulative weight exceeds 50%
     median_idx = np.where(cumulative_weight >= cutoff)[0][0]
     return sorted_values[median_idx]
+
+
+def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, pad: int = 100) -> np.ndarray:
+    """
+    Crop the section of the image containing hair fragments.
+    
+    Args:
+        image (np.ndarray): Input image.
+        min_size (int): Minimum size of the object to be cropped.
+        max_size (int): Maximum size of the object to be cropped.
+        pad (int): Padding around the cropped section.
+
+    Returns:
+        np.ndarray: Cropped section of the image.
+    """
+    
+    im_center = np.array(image.shape) // 2
+
+    _, thresh = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    bin_img = skimage.segmentation.clear_border(thresh)
+    # label the image
+    label_im, _ = skimage.measure.label(bin_img, connectivity=2, return_num=True)
+    # region properties
+    props = skimage.measure.regionprops(label_image=label_im, intensity_image=image)
+    props = [region for region in props if region.area > min_size and region.area < max_size]
+    # calculate the distances between the centroids of the regions and the image center
+    distances = [np.linalg.norm(region.centroid - im_center) for region in props]
+    section = props[np.argmin(distances)]
+
+    # crop the image to the selected region
+    minr, minc, maxr, maxc = section.bbox
+    crop_img = image[minr-pad:maxr+pad, minc-pad:maxc+pad]
+    
+    return crop_img
+
+def calculate_section(crop_img: np.ndarray, min_size: int = 500, max_size: int = 20000):
+    """
+    Calculate the section of the hair fragments in the cropped image.
+    
+    Args:
+        crop_img (np.ndarray): Cropped image of hair fragments.
+        min_size (int): Minimum size of the object to be segmented.
+        max_size (int): Maximum size of the object to be segmented.
+
+    Returns:
+        np.ndarray: Curvature image.
+    """
+    
+    crop_im_center = np.array(crop_img.shape) // 2
+    _, thresh = cv2.threshold(crop_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    seg_im = skimage.segmentation.morphological_chan_vese(crop_img, 40, init_level_set=thresh, smoothing=4)
+
+    crop_label_im, _ = skimage.measure.label(seg_im, connectivity=2, return_num=True)
+
+    crop_props = skimage.measure.regionprops(label_image=crop_label_im, intensity_image=crop_img)
+    crop_props = [region for region in crop_props if region.area > min_size and region.area < max_size]
+    # calculate the distances between the centroids of the regions and the image center
+    distances = [np.linalg.norm(region.centroid - crop_im_center) for region in crop_props]
+    section = crop_props[np.argmin(distances)]
+
+    return section, seg_im > 0
