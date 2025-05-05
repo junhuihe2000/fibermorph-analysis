@@ -1,0 +1,10 @@
+numpy
+skimage
+matplotlib
+scikit-learn
+scipy
+PIL
+pillow
+tqdm
+opencv-python
+streamlit
