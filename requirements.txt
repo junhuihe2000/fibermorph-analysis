@@ -1,9 +1,8 @@
 numpy
-skimage
+scikit-image
 matplotlib
 scikit-learn
 scipy
-PIL
 pillow
 tqdm
 opencv-python
