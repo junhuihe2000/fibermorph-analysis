@@ -160,7 +160,7 @@ def weighted_median(values, weights):
     return sorted_values[median_idx]
 
 
-def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, pad: int = 100) -> np.ndarray:
+def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, pad: int = 100, width: int = 1300) -> np.ndarray:
     """
     Crop the section of the image containing hair fragments.
     
@@ -169,10 +169,15 @@ def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, 
         min_size (int): Minimum size of the object to be cropped.
         max_size (int): Maximum size of the object to be cropped.
         pad (int): Padding around the cropped section.
+        width (int): Width of the image for resizing.
 
     Returns:
         np.ndarray: Cropped section of the image.
     """
+    
+    # Resize the image to a fixed width while maintaining aspect ratio
+    height = int(image.shape[0] * (width / image.shape[1]))
+    image = cv2.resize(image, (width, height))
     
     im_center = np.array(image.shape) // 2
 
