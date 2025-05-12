@@ -33,8 +33,13 @@ def main():
     st.subheader("Original Image")
     st.image(image, use_container_width=True)
 
+    # Length range for hair fragments
+    st.sidebar.header("Parameters in curvature calculation")
+    resolution = st.sidebar.number_input("Resolution of the image (number of pixels per mm)", 1.0, 1000.0, 132.0, 1.0)
+    min_size = st.sidebar.slider("Minimum pixel size of hair fragments", 10, 200, 50)
+
     # Segment the hair fragments
-    skeleton = segment_hair_fragments(np.array(image))
+    skeleton, resolution = segment_hair_fragments(np.array(image), resolution=resolution, min_size=min_size)
     dilated = skimage.morphology.dilation(skeleton, np.ones((3, 3)))
     dilated_image = Image.fromarray(skimage.util.invert(dilated))
     st.subheader("Segmented Hair Fragments")
@@ -45,7 +50,7 @@ def main():
 
     # calculate curvature
     st.subheader("Curvature Analysis")
-    curvatures, curv_summary = calculate_curvature(pruned)
+    curvatures, curv_summary = calculate_curvature(pruned, resolution)
     fig, ax = plt.subplots()
     ax.hist(curvatures, bins=64, color="steelblue", alpha=0.7)
     ax.axvline(curv_summary["mean_curvature"], color="red", linestyle="dashed", linewidth=1)

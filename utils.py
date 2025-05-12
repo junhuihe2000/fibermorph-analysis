@@ -30,22 +30,26 @@ def remove_junction(ske_img, min_size: int = 30):
     
     return prune_img
 
-def segment_hair_fragments(image: np.ndarray, min_size: int = 50, width: int = 1800) -> np.ndarray:
+def segment_hair_fragments(image: np.ndarray, resolution: float = 132.0, min_size: int = 50, width: int = 1800):
     """
     Segments hair fibers from the input image using adaptive thresholding and morphological operations.
     
     Args:
         image (np.ndarray): Input grayscale image.
+        resolution (float): Resolution of the image (number of pixels per mm).
         min_size (int): Minimum size of the object to be segmented.
         width (int): Width of the image for resizing.
 
     Returns:
         np.ndarray: Segmented binary image with isolated hair fibers.
+        float: Resolution of the image after resizing.
     """
 
     # Resize the image to a fixed width while maintaining aspect ratio
-    height = int(image.shape[0] * (width / image.shape[1]))
+    scale_factor = width / image.shape[1]
+    height = int(image.shape[0] * scale_factor)
     image = cv2.resize(image, (width, height))
+    resolution = resolution * scale_factor
     
     # apply Gaussian blur to reduce noise
     blurred = cv2.GaussianBlur(image, (5, 5), 0)
@@ -62,7 +66,7 @@ def segment_hair_fragments(image: np.ndarray, min_size: int = 50, width: int = 1
     skeleton = skimage.morphology.skeletonize(closed)
     skeleton = skimage.morphology.remove_small_objects(skeleton, min_size=min_size, connectivity=2)
     
-    return skeleton
+    return skeleton, resolution
 
 # calculate the curvature of a single hair fragment
 def cal_curv_single_hair(single_hair, resolution):
@@ -115,6 +119,7 @@ def calculate_curvature(prune: np.ndarray, resolution: float = 132.0):
     
     Args:
         prune (np.ndarray): Skeletonized binary image of hair fibers.
+        resolution (float): Resolution of the image (number of pixels per mm).
 
     Returns:
         np.ndarray: Curvature image.
@@ -160,12 +165,13 @@ def weighted_median(values, weights):
     return sorted_values[median_idx]
 
 
-def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, pad: int = 100, width: int = 1300) -> np.ndarray:
+def crop_section(image: np.ndarray, resolution: float = 1.0, min_size: int = 500, max_size: int = 20000, pad: int = 100, width: int = 1300):
     """
     Crop the section of the image containing hair fragments.
     
     Args:
         image (np.ndarray): Input image.
+        resolution (float): Resolution of the image (number of pixels per mm).
         min_size (int): Minimum size of the object to be cropped.
         max_size (int): Maximum size of the object to be cropped.
         pad (int): Padding around the cropped section.
@@ -173,11 +179,14 @@ def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, 
 
     Returns:
         np.ndarray: Cropped section of the image.
+        float: Resolution of the image after resizing.
     """
     
     # Resize the image to a fixed width while maintaining aspect ratio
-    height = int(image.shape[0] * (width / image.shape[1]))
+    scale_factor = width / image.shape[1]
+    height = int(image.shape[0] * scale_factor)
     image = cv2.resize(image, (width, height))
+    resolution = resolution * scale_factor
 
     im_center = np.array(image.shape) // 2
 
@@ -197,14 +206,15 @@ def crop_section(image: np.ndarray, min_size: int = 500, max_size: int = 20000, 
     minr, minc, maxr, maxc = section.bbox
     crop_img = image[minr-pad:maxr+pad, minc-pad:maxc+pad]
     
-    return crop_img
+    return crop_img, resolution
 
-def calculate_section(crop_img: np.ndarray, min_size: int = 500, max_size: int = 20000):
+def calculate_section(crop_img: np.ndarray, resolution: float = 1.0, min_size: int = 500, max_size: int = 20000):
     """
     Calculate the section of the hair fragments in the cropped image.
     
     Args:
         crop_img (np.ndarray): Cropped image of hair fragments.
+        resolution (float): Resolution of the image (number of pixels per mm).
         min_size (int): Minimum size of the object to be segmented.
         max_size (int): Maximum size of the object to be segmented.
 
